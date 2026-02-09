@@ -1,66 +1,73 @@
-import products
+from products import Product
 
 
 class Store:
-    """Store that contains products."""
+    def __init__(self, products=None):
+        # type check first
+        if products is not None and not isinstance(products, list):
+            raise TypeError("products must be a list of Product or None")
 
-    def __init__(self, product_list):
-        """Create store with a list of products."""
-        self.products = product_list
+        self.products = []
 
+        # check list contents
+        if products:
+            for p in products:
+                if not isinstance(p, Product):
+                    raise TypeError("all items in products must be Product instances")
+                self.products.append(p)
 
     def add_product(self, product):
-        """Add a product to the store."""
+        # type check first
+        if not isinstance(product, Product):
+            raise TypeError("product must be a Product instance")
+
         self.products.append(product)
 
-
     def remove_product(self, product):
-        """Remove a product from the store."""
+        # type check first
+        if not isinstance(product, Product):
+            raise TypeError("product must be a Product instance")
+
+        # controlled error if missing
+        if product not in self.products:
+            raise ValueError("product not found in store")
+
         self.products.remove(product)
 
+    def get_all_products(self):
+        return [p for p in self.products if p.is_active()]
 
     def get_total_quantity(self):
-        """Return total quantity of all products."""
         total = 0
-        for product in self.products:
-            total = total + product.get_quantity()
+        for p in self.get_all_products():
+            total += p.get_quantity()
         return total
 
-
-    def get_all_products(self):
-        """Return a list of active products."""
-        active_products = []
-        for product in self.products:
-            if product.is_active():
-                active_products.append(product)
-        return active_products
-
-
     def order(self, shopping_list):
-        """Buy items from a shopping list and return total price."""
-        total_price = 0.0
+        # nice-to-have: validate early
+        if not isinstance(shopping_list, list):
+            raise TypeError("shopping_list must be a list of (Product, int) tuples")
+        if len(shopping_list) == 0:
+            raise ValueError("shopping_list must not be empty")
 
         for item in shopping_list:
-            product = item[0]
-            quantity = item[1]
-            total_price = total_price + product.buy(quantity)
+            if not isinstance(item, tuple) or len(item) != 2:
+                raise TypeError("each item must be a tuple (Product, int)")
 
-        return total_price
+            product, amount = item
 
+            if not isinstance(product, Product):
+                raise TypeError("first element must be a Product")
+            if not isinstance(amount, int) or isinstance(amount, bool):
+                raise TypeError("second element must be an int")
 
-def main():
-    product_list = [
-        products.Product("MacBook Air M2", price=1450, quantity=100),
-        products.Product("Bose QuietComfort Earbuds", price=250, quantity=500),
-        products.Product("Google Pixel 7", price=500, quantity=250),
-    ]
+            if amount <= 0:
+                raise ValueError("amount must be > 0")
+            if not product.is_active():
+                raise ValueError("product is not active")
 
-    best_buy = Store(product_list)
-    active_products = best_buy.get_all_products()
+        total = 0.0
+        for product, amount in shopping_list:
+            total += product.buy(amount)
 
-    print(best_buy.get_total_quantity())
-    print(best_buy.order([(active_products[0], 1), (active_products[1], 2)]))
-
-
-if __name__ == "__main__":
-    main()
+        return total
